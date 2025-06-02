@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Array Problems Explorer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        .nav-button.active {
+            background-color: #f59e0b;
+            color: #ffffff;
+        }
+        .problem-card.active {
+            border-color: #f59e0b;
+            background-color: #fffbeb;
+        }
+        .content-fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .time-lock-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.9);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            flex-direction: column;
+        }
+        .blur-content {
+            filter: blur(5px);
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <!-- Time Lock Overlay -->
+    <div id="timeLockOverlay" class="time-lock-overlay hidden">
+        <div class="text-center p-8 bg-white rounded-xl shadow-lg max-w-md mx-4">
+            <div class="text-6xl mb-6 text-amber-500">
+                <i class="fas fa-lock"></i>
+            </div>
+            <h2 class="text-2xl font-bold mb-4">Content Locked</h2>
+            <p class="mb-6 text-slate-600">This content will be available at <span id="unlockTime" class="font-bold">12:30 PM</span></p>
+            <div class="flex items-center justify-center space-x-2">
+                <i class="fas fa-clock text-amber-500"></i>
+                <span id="currentTimeDisplay" class="font-mono"></span>
+            </div>
+            <div class="mt-6 bg-slate-100 p-3 rounded-lg">
+                <div class="flex justify-between items-center mb-2">
+                    <span>Time remaining:</span>
+                    <span id="timeRemaining" class="font-bold"></span>
+                </div>
+                <div class="w-full bg-slate-200 rounded-full h-2.5">
+                    <div id="progressBar" class="bg-amber-500 h-2.5 rounded-full" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="mainContent" class="container mx-auto p-4 md:p-8">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-slate-900">Interactive Array Problems Explorer</h1>
+            <p class="mt-2 text-lg text-slate-600 max-w-3xl mx-auto">This application provides an interactive way to explore common array-based programming challenges. Select a difficulty to filter the list, then click on a problem to see its details.</p>
+        </header>
+
+        <main class="flex flex-col md:flex-row gap-8">
+            <nav id="difficulty-nav" class="md:w-1/5">
+                <h2 class="text-xl font-bold mb-4 text-slate-700 border-b pb-2">Filter by Difficulty</h2>
+                <ul class="space-y-2">
+                    <li><button data-difficulty="all" class="nav-button w-full text-left p-3 rounded-lg font-semibold transition-colors duration-200 hover:bg-slate-200 active">🔹🔸🔺 All Problems</button></li>
+                    <li><button data-difficulty="easy" class="nav-button w-full text-left p-3 rounded-lg font-semibold transition-colors duration-200 hover:bg-slate-200">🔹 Easy</button></li>
+                    <li><button data-difficulty="medium" class="nav-button w-full text-left p-3 rounded-lg font-semibold transition-colors duration-200 hover:bg-slate-200">🔸 Medium</button></li>
+                    <li><button data-difficulty="hard" class="nav-button w-full text-left p-3 rounded-lg font-semibold transition-colors duration-200 hover:bg-slate-200">🔺 Hard</button></li>
+                </ul>
+            </nav>
+
+            <section id="problem-list-section" class="md:w-2/5 bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                <h2 id="problem-list-title" class="text-2xl font-bold mb-4 text-slate-800">All Problems</h2>
+                <div id="problem-list-container" class="space-y-3 h-[60vh] overflow-y-auto pr-2">
+                </div>
+            </section>
+
+            <aside id="problem-detail-section" class="md:w-2/5 bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                <div id="detail-content" class="h-full flex flex-col justify-center items-center text-center">
+                    <div class="p-4 rounded-full bg-slate-100 mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M10 21h7a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold text-slate-700">Select a Problem</h3>
+                    <p class="text-slate-500 mt-1">Click on a problem from the list to view its full description here.</p>
+                </div>
+            </aside>
+        </main>
+    </div>
+
+    <script>
+        // Configuration - Set your unlock time here (24-hour format)
+        const UNLOCK_HOUR = 14;    // 12 PM
+        const UNLOCK_MINUTE = 10;  // 30 minutes
+        
+        // Problem data
+        const problems = [
+            { id: 1, difficulty: 'easy', title: 'Sum of Array Elements', 
+              description: 'Given an array of integers, return the sum of all elements.',
+              solution: 'function sumArray(arr) {\n  return arr.reduce((acc, val) => acc + val, 0);\n}' },
+            
+            { id: 2, difficulty: 'easy', title: 'Find Maximum Element', 
+              description: 'Find the maximum element in a given array.',
+              solution: 'function findMax(arr) {\n  return Math.max(...arr);\n}' },
+            
+            { id: 3, difficulty: 'easy', title: 'Count Even and Odd Numbers', 
+              description: 'Count how many even and odd numbers are in an array.',
+              solution: 'function countEvenOdd(arr) {\n  const counts = { even: 0, odd: 0 };\n  arr.forEach(num => num % 2 === 0 ? counts.even++ : counts.odd++);\n  return counts;\n}' },
+            
+            { id: 4, difficulty: 'easy', title: 'Reverse Array', 
+              description: 'Reverse a given array in-place.',
+              solution: 'function reverseArray(arr) {\n  return arr.reverse();\n  // Or manual implementation:\n  // for(let i = 0; i < arr.length / 2; i++) {\n  //   [arr[i], arr[arr.length-1-i]] = [arr[arr.length-1-i], arr[i]];\n  // }\n}' },
+            
+            { id: 5, difficulty: 'easy', title: 'Jagged Array Initialization', 
+              description: 'Create and print a jagged array of 3 rows where: Row 1 has 2 elements, Row 2 has 3 elements, and Row 3 has 1 element.',
+              solution: 'const jaggedArray = [\n  [1, 2],\n  [3, 4, 5],\n  [6]\n];\n\n// Print:\njaggedArray.forEach((row, i) => {\n  console.log(`Row ${i}: ${row.join(", ")}`);\n});' },
+            
+            { id: 6, difficulty: 'medium', title: 'Left Rotate an Array', 
+              description: 'Rotate an array to the left by k positions.',
+              solution: 'function rotateLeft(arr, k) {\n  k = k % arr.length;\n  return [...arr.slice(k), ...arr.slice(0, k)];\n}' },
+            
+            { id: 7, difficulty: 'medium', title: 'Second Largest Element', 
+              description: 'Find the second largest element in the array.',
+              solution: 'function secondLargest(arr) {\n  const uniqueSorted = [...new Set(arr)].sort((a,b) => b-a);\n  return uniqueSorted.length >= 2 ? uniqueSorted[1] : null;\n}' },
+            
+            { id: 8, difficulty: 'medium', title: 'Count Frequencies', 
+              description: 'Count the frequency of each element in an array.',
+              solution: 'function countFrequencies(arr) {\n  const freq = {};\n  arr.forEach(item => {\n    freq[item] = (freq[item] || 0) + 1;\n  });\n  return freq;\n}' },
+            
+            { id: 9, difficulty: 'medium', title: 'Jagged Array Sum of All Rows', 
+              description: 'For a given jagged array, print the sum of elements in each row.',
+              solution: 'function sumJaggedRows(jaggedArray) {\n  return jaggedArray.map(row => row.reduce((sum, num) => sum + num, 0));\n}' },
+            
+            { id: 10, difficulty: 'medium', title: 'Check Palindrome Array', 
+              description: 'Check if an array reads the same forward and backward (palindrome).',
+              solution: 'function isPalindromeArray(arr) {\n  for(let i = 0; i < arr.length / 2; i++) {\n    if(arr[i] !== arr[arr.length - 1 - i]) return false;\n  }\n  return true;\n}' },
+            
+            { id: 11, difficulty: 'hard', title: 'Subarray with Maximum Sum (Kadane’s Algorithm)', 
+              description: 'Find the contiguous subarray with the maximum sum.',
+              solution: 'function maxSubarraySum(arr) {\n  let maxCurrent = arr[0];\n  let maxGlobal = arr[0];\n  \n  for(let i = 1; i < arr.length; i++) {\n    maxCurrent = Math.max(arr[i], maxCurrent + arr[i]);\n    maxGlobal = Math.max(maxGlobal, maxCurrent);\n  }\n  \n  return maxGlobal;\n}' },
+            
+            { id: 12, difficulty: 'hard', title: 'Merge Two Sorted Arrays Without Extra Space', 
+              description: 'Given two sorted arrays, merge them without using extra space.',
+              solution: 'function mergeSorted(arr1, arr2) {\n  let i = arr1.length - 1;\n  let j = arr2.length - 1;\n  let k = arr1.length + arr2.length - 1;\n  \n  while(i >= 0 && j >= 0) {\n    arr1[k--] = arr1[i] > arr2[j] ? arr1[i--] : arr2[j--];\n  }\n  \n  while(j >= 0) {\n    arr1[k--] = arr2[j--];\n  }\n  \n  return arr1;\n}' },
+            
+            { id: 13, difficulty: 'hard', title: 'Majority Element (Appears > n/2 times)', 
+              description: 'Find the majority element in an array if it exists.',
+              solution: 'function majorityElement(arr) {\n  let candidate = null;\n  let count = 0;\n  \n  for(const num of arr) {\n    if(count === 0) candidate = num;\n    count += (num === candidate) ? 1 : -1;\n  }\n  \n  // Verify if it\'s actually majority\n  count = arr.filter(n => n === candidate).length;\n  return count > arr.length / 2 ? candidate : null;\n}' },
+            
+            { id: 14, difficulty: 'hard', title: 'Jagged Array Row with Maximum Sum', 
+              description: 'Find the row in a jagged array with the maximum sum of elements.',
+              solution: 'function maxSumRow(jaggedArray) {\n  let maxSum = -Infinity;\n  let maxIndex = -1;\n  \n  jaggedArray.forEach((row, i) => {\n    const rowSum = row.reduce((sum, num) => sum + num, 0);\n    if(rowSum > maxSum) {\n      maxSum = rowSum;\n      maxIndex = i;\n    }\n  });\n  \n  return { index: maxIndex, sum: maxSum };\n}' },
+            
+            { id: 15, difficulty: 'hard', title: 'Find All Subarrays with Given Sum', 
+              description: 'Given an array and a target sum, find all subarrays whose sum equals the target.',
+              solution: 'function subarraysWithSum(arr, target) {\n  const result = [];\n  let sum = 0;\n  const map = new Map();\n  map.set(0, [-1]);\n  \n  for(let i = 0; i < arr.length; i++) {\n    sum += arr[i];\n    \n    if(map.has(sum - target)) {\n      for(const start of map.get(sum - target)) {\n        result.push(arr.slice(start + 1, i + 1));\n      }\n    }\n    \n    if(!map.has(sum)) map.set(sum, []);\n    map.get(sum).push(i);\n  }\n  \n  return result;\n}' }
+        ];
+
+        // DOM elements
+        const difficultyNav = document.getElementById('difficulty-nav');
+        const problemListContainer = document.getElementById('problem-list-container');
+        const problemListTitle = document.getElementById('problem-list-title');
+        const detailContent = document.getElementById('detail-content');
+        const timeLockOverlay = document.getElementById('timeLockOverlay');
+        const mainContent = document.getElementById('mainContent');
+        const unlockTimeDisplay = document.getElementById('unlockTime');
+        const currentTimeDisplay = document.getElementById('currentTimeDisplay');
+        const timeRemainingDisplay = document.getElementById('timeRemaining');
+        const progressBar = document.getElementById('progressBar');
+
+        // Difficulty emojis
+        const difficultyEmojis = {
+            easy: '🔹',
+            medium: '🔸',
+            hard: '🔺'
+        };
+
+        // Format time as AM/PM
+        function formatAMPM(date) {
+            let hours = date.getHours();
+            let minutes = date.getMinutes();
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12;
+            hours = hours ? hours : 12;
+            minutes = minutes < 10 ? '0' + minutes : minutes;
+            return `${hours}:${minutes} ${ampm}`;
+        }
+
+        // Check if current time is after unlock time
+        function isUnlocked() {
+            const now = new Date();
+            const unlockTime = new Date();
+            unlockTime.setHours(UNLOCK_HOUR, UNLOCK_MINUTE, 0, 0);
+            
+            // For testing: Uncomment to always show content
+            // return true;
+            
+            return now >= unlockTime;
+        }
+
+        // Update the time display
+        function updateTimeDisplay() {
+            const now = new Date();
+            const unlockTime = new Date();
+            unlockTime.setHours(UNLOCK_HOUR, UNLOCK_MINUTE, 0, 0);
+            
+            // Set the unlock time display
+            unlockTimeDisplay.textContent = formatAMPM(unlockTime);
+            
+            // Set current time display
+            currentTimeDisplay.textContent = formatAMPM(now);
+            
+            if (now < unlockTime) {
+                // Calculate time remaining
+                const diffMs = unlockTime - now;
+                const diffHrs = Math.floor(diffMs / (1000 * 60 * 60));
+                const diffMins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+                const diffSecs = Math.floor((diffMs % (1000 * 60)) / 1000);
+                
+                timeRemainingDisplay.textContent = `${diffHrs}h ${diffMins}m ${diffSecs}s`;
+                
+                // Update progress bar
+                const totalDayMs = 24 * 60 * 60 * 1000;
+                const progress = 100 - (diffMs / totalDayMs * 100);
+                progressBar.style.width = `${progress}%`;
+            }
+        }
+
+        // Initialize time check
+        function initTimeCheck() {
+            updateTimeDisplay();
+            
+            if (!isUnlocked()) {
+                timeLockOverlay.classList.remove('hidden');
+                mainContent.classList.add('blur-content');
+                
+                // Update time every second
+                setInterval(updateTimeDisplay, 1000);
+            } else {
+                // Content is unlocked, initialize the app
+                initApp();
+            }
+        }
+
+        // Initialize the main application
+        function initApp() {
+            renderProblemList('all');
+            
+            // Event listeners
+            difficultyNav.addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON') {
+                    const difficulty = e.target.dataset.difficulty;
+                    renderProblemList(difficulty);
+                    setActive(difficultyNav, e.target);
+                    
+                    const titleText = difficulty === 'all' ? 'All Problems' : `${difficulty.charAt(0).toUpperCase() + difficulty.slice(1)} Problems`;
+                    problemListTitle.textContent = titleText;
+                    
+                    resetDetailView();
+                }
+            });
+
+            problemListContainer.addEventListener('click', (e) => {
+                const card = e.target.closest('.problem-card');
+                if (card) {
+                    const problemId = card.dataset.problemId;
+                    displayProblemDetail(problemId);
+                    setActive(problemListContainer, card);
+                }
+            });
+        }
+
+        // Render problem list based on filter
+        function renderProblemList(filter) {
+            problemListContainer.innerHTML = '';
+            const filteredProblems = filter === 'all' ? problems : problems.filter(p => p.difficulty === filter);
+
+            if (filteredProblems.length === 0) {
+                problemListContainer.innerHTML = `<div class="text-center text-slate-500 p-8">No problems found for this category.</div>`;
+                return;
+            }
+            
+            filteredProblems.forEach(problem => {
+                const card = document.createElement('div');
+                card.className = 'problem-card p-4 border-2 border-transparent rounded-lg cursor-pointer transition-all duration-200 hover:bg-slate-100 hover:border-slate-300';
+                card.dataset.problemId = problem.id;
+                card.innerHTML = `
+                    <h4 class="font-semibold text-slate-800">${difficultyEmojis[problem.difficulty]} ${problem.title}</h4>
+                    <div class="flex justify-between items-center mt-2">
+                        <span class="text-xs px-2 py-1 rounded-full ${getDifficultyColor(problem.difficulty)}">${problem.difficulty.charAt(0).toUpperCase() + problem.difficulty.slice(1)}</span>
+                        <button class="view-solution-btn text-xs text-amber-600 hover:text-amber-800" data-problem-id="${problem.id}">
+                            <i class="fas fa-code mr-1"></i>View Solution
+                        </button>
+                    </div>
+                `;
+                problemListContainer.appendChild(card);
+            });
+        }
+
+        // Get difficulty color class
+        function getDifficultyColor(difficulty) {
+            switch(difficulty) {
+                case 'easy': return 'bg-green-100 text-green-800';
+                case 'medium': return 'bg-yellow-100 text-yellow-800';
+                case 'hard': return 'bg-red-100 text-red-800';
+                default: return 'bg-slate-100 text-slate-800';
+            }
+        }
+
+        // Display problem detail
+        function displayProblemDetail(problemId) {
+            const problem = problems.find(p => p.id == problemId);
+            if (!problem) return;
+            
+            detailContent.innerHTML = `
+                <div class="w-full content-fade-in">
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="text-2xl font-bold text-slate-900">${difficultyEmojis[problem.difficulty]} ${problem.title}</h3>
+                        <span class="text-xs px-2 py-1 rounded-full ${getDifficultyColor(problem.difficulty)}">${problem.difficulty.charAt(0).toUpperCase() + problem.difficulty.slice(1)}</span>
+                    </div>
+                    <div class="bg-slate-50 p-4 rounded-lg mb-4 text-left">
+                        <p class="text-lg text-slate-700">${problem.description}</p>
+                    </div>
+                    <button class="show-solution-btn w-full py-2 bg-amber-500 text-white rounded-lg hover:bg-amber-600 transition-colors">
+                        <i class="fas fa-code mr-2"></i>Show Solution
+                    </button>
+                    <div id="solution-container" class="hidden mt-4 text-left">
+                        <h4 class="font-semibold mb-2">Solution:</h4>
+                        <pre class="bg-slate-800 text-slate-100 p-4 rounded-lg overflow-x-auto"><code>${problem.solution}</code></pre>
+                        <button class="copy-solution-btn mt-2 w-full py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-800 transition-colors">
+                            <i class="far fa-copy mr-2"></i>Copy to Clipboard
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Add event listener for solution button
+            detailContent.querySelector('.show-solution-btn')?.addEventListener('click', () => {
+                const solutionContainer = detailContent.querySelector('#solution-container');
+                solutionContainer.classList.toggle('hidden');
+            });
+            
+            // Add event listener for copy button
+            detailContent.querySelector('.copy-solution-btn')?.addEventListener('click', () => {
+                navigator.clipboard.writeText(problem.solution)
+                    .then(() => {
+                        const btn = detailContent.querySelector('.copy-solution-btn');
+                        btn.innerHTML = '<i class="fas fa-check mr-2"></i>Copied!';
+                        setTimeout(() => {
+                            btn.innerHTML = '<i class="far fa-copy mr-2"></i>Copy to Clipboard';
+                        }, 2000);
+                    });
+            });
+        }
+
+        // Reset detail view
+        function resetDetailView() {
+            detailContent.innerHTML = `
+                <div class="p-4 rounded-full bg-slate-100 mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M10 21h7a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                </div>
+                <h3 class="text-xl font-semibold text-slate-700">Select a Problem</h3>
+                <p class="text-slate-500 mt-1">Click on a problem from the list to view its full description here.</p>
+            `;
+        }
+
+        // Set active element
+        function setActive(container, element) {
+            container.querySelectorAll('.active').forEach(el => el.classList.remove('active'));
+            if(element) {
+                element.classList.add('active');
+            }
+        }
+
+        // Initialize the time check
+        window.onload = initTimeCheck;
+    </script>
+</body>
+</html>
